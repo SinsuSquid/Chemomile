@@ -13,6 +13,8 @@ class Training():
         self.validation_loader = self.dataset.validation_loader
         self.test_loader = self.dataset.test_loader
 
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
         self.model = Chemomile(
             subfrag_size = self.parameters['subfrag_size'],
             hidden_size = self.parameters['hidden_size'],
@@ -35,7 +37,16 @@ class Training():
     def eval(self):
         import numpy as np
         
-        best_model = torch.load(f"./Model/{self.parameters['target']}-{self.timestamp}")
+        best_model = Chemomile(
+            subfrag_size = self.parameters['subfrag_size'],
+            hidden_size = self.parameters['hidden_size'],
+            out_size = self.parameters['out_size'],
+            edge_size = self.parameters['edge_size'],
+            dropout = self.parameters['dropout'],
+            num_layers = self.parameters['num_layers'],
+            num_timesteps = self.parameters['num_timesteps']
+        )
+        best_model.load_state_dict(torch.load(f"./Model/{self.parameters['target']}-{self.timestamp}"))
         best_model.eval()
         
         test_loss = 0; true = []; pred = []
@@ -48,12 +59,12 @@ class Training():
                              jt_index = data.jt_index,
                              jt_attr = data.jt_attr,
                              numFrag = data.numFrag)
-            loss_obj = self.loss(out.flatten(), data.y)
+            loss_obj = self.loss(out.flatten(), data.y.to(self.device))
         
             test_loss += loss_obj.mean()
         
             true.append(data.y.numpy())
-            pred.append(out.detach().flatten().numpy())
+            pred.append(out.to('cpu').detach().flatten().numpy())
         
         test_loss = test_loss / len(self.test_loader)
         
@@ -75,7 +86,7 @@ class Training():
                              jt_attr = data.jt_attr,
                              numFrag = data.numFrag)
     
-            loss_obj = self.loss(out.flatten(), data.y)
+            loss_obj = self.loss(out.flatten(), data.y.to(self.device))
             training_loss += loss_obj.mean()
             self.optim.zero_grad()
             loss_obj.backward()
@@ -99,7 +110,7 @@ class Training():
                              jt_attr = data.jt_attr,
                              numFrag = data.numFrag)
     
-            loss_obj = self.loss(out.flatten(), data.y)
+            loss_obj = self.loss(out.flatten(), data.y.to(self.device))
             validation_loss += loss_obj.mean()
     
         validation_loss = validation_loss / len(self.validation_loader)
@@ -110,7 +121,7 @@ class Training():
     def run(self):
         from rich.progress import track
 
-        if self.parameters['verbose'] : iterator = track(range(self.parameters['max_epoch']))
+        if self.parameters['verbose'] : iterator = track(range(self.parameters['max_epoch']), description = "Training in process ...")
         else : iterator = range(self.parameters['max_epoch'])
         
         valLoss_min = 100000000000000
@@ -127,7 +138,7 @@ class Training():
             
             if (self.history['validation'][-1] < valLoss_min):
                 if self.parameters['verbose'] : print(f"\tSaving the best model with valLoss : {self.history['validation'][-1]:.3f}")
-                torch.save(self.model, f"./Model/{self.parameters['target']}-{self.timestamp}")
+                torch.save(self.model.state_dict(), f"./Model/{self.parameters['target']}-{self.timestamp}")
                 valLoss_min = self.history['validation'][-1]
 
         true, pred = self.eval()
@@ -196,4 +207,3 @@ class Training():
 
         return
 
-        

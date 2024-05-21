@@ -79,11 +79,18 @@ class Chemomile(torch.nn.Module):
                 jt_index, jt_attr, numFrag):
         jt_index, jt_attr, jt_batch = self.jtBatchMaker(numFrag, jt_index, jt_attr)
 
+        x = x.to(self.device)
+        edge_index = edge_index.to(self.device)
+        edge_attr = edge_attr.to(self.device)
+        sub_batch = sub_batch.to(self.device)
         result_subfrag = self.subfrag_level(x = x,
                                             edge_index = edge_index,
                                             edge_attr = edge_attr,
                                             batch = sub_batch)
-
+        
+        jt_index = jt_index.to(self.device)
+        jt_attr = jt_attr.to(self.device)
+        jt_batch = jt_batch.to(self.device)
         result_frag = self.fragment_level(x = result_subfrag,
                                           edge_index = jt_index,
                                           edge_attr = jt_attr,

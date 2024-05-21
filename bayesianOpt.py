@@ -55,8 +55,8 @@ param = {
 }
 
 np.random.seed(parameters['seed'])
-gpgo = GPGO(gp, acq, target_function, param, n_jobs = 10)
-gpgo.run(max_iter = 10)
+gpgo = GPGO(gp, acq, target_function, param, n_jobs = 5)
+gpgo.run(max_iter = 50, init_evals = 300)
 
 gpgo.getResult()
     

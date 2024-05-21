@@ -9,7 +9,7 @@ from torch_geometric.loader import DataLoader
 
 import src.smiles2data
 
-ROOT = "/Users/bgkang/ECO/GeometryInput/"
+ROOT = os.getcwd()
 
 RDLogger.DisableLog('rdApp.*')
 
