@@ -2,7 +2,7 @@ import os
 import random
 import pickle
 import pandas as pd
-import tqdm
+from rich.progress import track
 
 from rdkit import RDLogger
 from torch_geometric.loader import DataLoader
@@ -13,7 +13,8 @@ ROOT = os.getcwd()
 
 RDLogger.DisableLog('rdApp.*')
 
-MOLECULENET = ['ESOL', 'FREESOLV', 'LIPOPHILICITY']
+REGRESSION = ['ESOL', 'FREESOLV', 'LIPOPHILICITY']
+CLASSIFICATION = []
 DIPPR = ['FP', 'AIT', 'FLVL', 'FLVU', 'HCOM']
 
 class Dataset():
@@ -23,14 +24,17 @@ class Dataset():
         self.batch_size = batch_size
         self.verbose = verbose
 
-        if self.target in MOLECULENET:
-            self.df = pd.read_csv(f"{ROOT}/data/MOLECULENET/{self.target}.csv")
+        if self.target in REGRESSION:
+            self.df = pd.read_csv(f"{ROOT}/data/MOLECULENET/REGRESSION/{self.target}.csv")
+        elif self.target in CLASSIFICATION:
+            self.df = pd.read_csv(f"{ROOT}/data/MOLECULENET/CLASSIFICATION/{self.target}.csv")
         elif self.target in DIPPR:
             self.df = pd.read_csv(f"{ROOT}/data/DIPPR/{self.target}.csv")
         else:
             print("Something is wrong with the target.")
             print("Supported targets are : ")
-            print(f"\tMoleculeNet : {MOLECULENET}")
+            print(f"\tRegression : {REGRESSION}")
+            print(f"\tClassification : {CLASSIFICATION}")
             print(f"\tDIPPR : {DIPPR}")
             exit(-1)
 
@@ -78,7 +82,7 @@ class Dataset():
 
         self.total_set = []
 
-        for idx, row in tqdm.tqdm(self.df.iterrows(), total = self.df.shape[0]):
+        for idx, row in track(self.df.iterrows(), total = self.df.shape[0], description = "Building DataDump ..."):
             result = src.smiles2data.smiles2data(row.SMILES, row.Z_Value)
             if (result != -1): self.total_set.append(result)
 

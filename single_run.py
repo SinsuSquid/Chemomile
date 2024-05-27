@@ -12,12 +12,12 @@ if __name__ == '__main__':
         max_epoch = 200,
         verbose = True,
         
-        hidden_size = 50,
-        dropout = 0.20,
-        num_layers = 3,
-        num_timesteps = 3,
+        hidden_size = 30,
+        dropout = 0.256,
+        num_layers = 2,
+        num_timesteps = 2,
         lr_init = 0.001,
-        gamma = 0.998,
+        gamma = 0.994,
     )
 
     dataset = Dataset(
@@ -35,3 +35,5 @@ if __name__ == '__main__':
     print(f"\tRMSE : {train.rmse:6.3f}")
     print(f"\tMDAPE : {train.mdape:6.3f}")
     print(f"\tR2 : {train.r2:6.3f}")
+
+    train.TPPlot()

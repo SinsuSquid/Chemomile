@@ -33,11 +33,20 @@ class Chemomile(torch.nn.Module):
 
         self.fragment_level = AttentiveFP(in_channels = self.hidden_size,
                                           hidden_channels = 2 * self.hidden_size,
-                                          out_channels = self.out_size,
+                                          out_channels = self.hidden_size,
                                           edge_dim = self.edge_size,
                                           num_layers = self.num_layers,
                                           num_timesteps = self.num_timesteps,
                                           dropout = self.dropout).to(self.device)
+
+        self.fully_connected = torch.nn.Sequential(
+                torch.nn.Linear(in_features = self.hidden_size,
+                                out_features = int(0.5 * self.hidden_size)),
+                torch.nn.LeakyReLU(),
+                torch.nn.Dropout(self.dropout),
+                torch.nn.Linear(in_features = int(0.5 * self.hidden_size),
+                                out_features = self.out_size),
+                ).to(self.device)
 
         self.reset_parameters()
 
@@ -46,6 +55,9 @@ class Chemomile(torch.nn.Module):
     def reset_parameters(self):
         self.subfrag_level.reset_parameters()
         self.fragment_level.reset_parameters()
+        for layer in self.fully_connected:
+            if isinstance(layer, torch.nn.Linear):
+                layer.reset_parameters()
 
     def jtBatchMaker(self, numFrag, jt_index, jt_attr):
         batch_idx = 0
@@ -96,7 +108,9 @@ class Chemomile(torch.nn.Module):
                                           edge_attr = jt_attr,
                                           batch = jt_batch)
 
-        return result_frag
+        result = self.fully_connected(result_frag)
+
+        return result
 
 if __name__ == "__main__":
     import smiles2data
@@ -115,3 +129,4 @@ if __name__ == "__main__":
                     jt_index = data.jt_index,
                     jt_attr = data.jt_attr,
                     numFrag = torch.tensor(data.numFrag).view(-1, ))
+        print(out)

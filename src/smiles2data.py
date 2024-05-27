@@ -20,8 +20,8 @@ def smiles2data(smiles, y, seed = 42):
                                if (bond.GetBondType() == Chem.rdchem.BondType.SINGLE) and (not bond.IsInRing())]
 
         mol = Chem.AddHs(mol_def)
-        # AllChem.EmbedMolecule(mol, AllChem.ETKDG(), randomSeed = seed)
-        AllChem.EmbedMolecule(mol, randomSeed = seed)
+        AllChem.EmbedMultipleConfs(mol, 10)
+        optResult = AllChem.MMFFOptimizeMoleculeConfs(mol, maxIters=2000)
 
         fragments_mol = []
         fragments_atom = []
@@ -95,10 +95,16 @@ def subfragment_data(fragments_mol, seed = 42):
 
     for frag in fragments_mol:
         frag = Chem.AddHs(frag)
-        # AllChem.EmbedMolecule(frag, AllChem.ETKDG(), randomSeed = seed)
-        AllChem.EmbedMolecule(frag, randomSeed = seed)
+        AllChem.EmbedMultipleConfs(frag, 10)
+        optResult = AllChem.MMFFOptimizeMoleculeConfs(frag, maxIters=2000)
+        minIdx = 100000; minEng = 10000.0
+        for idx, (converged, energy) in enumerate(optResult):
+            if (energy < minEng): 
+                minIdx = idx
+                minEng = energy
+        conf = frag.GetConformer(minIdx)
 
-        position = np.array(frag.GetConformer().GetPositions())
+        position = np.array(conf.GetPositions())
         com = position.mean(axis = 0)
 
         position = position - com # relative position from the centre of mass
@@ -109,6 +115,7 @@ def subfragment_data(fragments_mol, seed = 42):
             # add atom_data here
             
             atom_data += tuple(position[idx])
+
             x.append(atom_data)
             batch.append(batch_idx)
 

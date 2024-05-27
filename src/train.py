@@ -24,6 +24,7 @@ class Training():
             num_layers = self.parameters['num_layers'],
             num_timesteps = self.parameters['num_timesteps']
         )
+        self.best_model = self.model
         
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         self.loss = torch.nn.MSELoss()
@@ -36,29 +37,19 @@ class Training():
 
     def eval(self):
         import numpy as np
-        
-        best_model = Chemomile(
-            subfrag_size = self.parameters['subfrag_size'],
-            hidden_size = self.parameters['hidden_size'],
-            out_size = self.parameters['out_size'],
-            edge_size = self.parameters['edge_size'],
-            dropout = self.parameters['dropout'],
-            num_layers = self.parameters['num_layers'],
-            num_timesteps = self.parameters['num_timesteps']
-        )
-        best_model.load_state_dict(torch.load(f"./Model/{self.parameters['target']}-{self.timestamp}"))
-        best_model.eval()
+  
+        self.best_model.eval()
         
         test_loss = 0; true = []; pred = []
         
         for data in self.test_loader:
-            out = best_model(x = data.x, 
-                             edge_index = data.edge_index, 
-                             edge_attr = data.edge_attr,
-                             sub_batch = data.sub_batch, 
-                             jt_index = data.jt_index,
-                             jt_attr = data.jt_attr,
-                             numFrag = data.numFrag)
+            out = self.best_model(x = data.x, 
+                                  edge_index = data.edge_index, 
+                                  edge_attr = data.edge_attr,
+                                  sub_batch = data.sub_batch, 
+                                  jt_index = data.jt_index,
+                                  jt_attr = data.jt_attr,
+                                  numFrag = data.numFrag)
             loss_obj = self.loss(out.flatten(), data.y.to(self.device))
         
             test_loss += loss_obj.mean()
@@ -121,7 +112,7 @@ class Training():
     def run(self):
         from rich.progress import track
 
-        if self.parameters['verbose'] : iterator = track(range(self.parameters['max_epoch']), description = "Training in process ...")
+        if self.parameters['verbose'] : iterator = track(range(self.parameters['max_epoch']), description = "Training the model ...")
         else : iterator = range(self.parameters['max_epoch'])
         
         valLoss_min = 100000000000000
@@ -140,6 +131,7 @@ class Training():
                 if self.parameters['verbose'] : print(f"\tSaving the best model with valLoss : {self.history['validation'][-1]:.3f}")
                 torch.save(self.model.state_dict(), f"./Model/{self.parameters['target']}-{self.timestamp}")
                 valLoss_min = self.history['validation'][-1]
+                self.best_model = self.model
 
         true, pred = self.eval()
         self.metrics(true, pred)
