@@ -18,18 +18,20 @@ CLASSIFICATION = []
 DIPPR = ['FP', 'AIT', 'FLVL', 'FLVU', 'HCOM']
 
 class Dataset():
-    def __init__(self, target, seed, batch_size, verbose = True):
+    def __init__(self, target, seed = 42, batch_size = 1, verbose = True,
+                 root = ROOT):
         self.target = target
         self.seed = seed
         self.batch_size = batch_size
         self.verbose = verbose
+        self.root = root
 
         if self.target in REGRESSION:
-            self.df = pd.read_csv(f"{ROOT}/data/MOLECULENET/REGRESSION/{self.target}.csv")
+            self.df = pd.read_csv(f"{self.root}/data/MOLECULENET/REGRESSION/{self.target}.csv")
         elif self.target in CLASSIFICATION:
-            self.df = pd.read_csv(f"{ROOT}/data/MOLECULENET/CLASSIFICATION/{self.target}.csv")
+            self.df = pd.read_csv(f"{self.root}/data/MOLECULENET/CLASSIFICATION/{self.target}.csv")
         elif self.target in DIPPR:
-            self.df = pd.read_csv(f"{ROOT}/data/DIPPR/{self.target}.csv")
+            self.df = pd.read_csv(f"{self.root}/data/DIPPR/{self.target}.csv")
         else:
             print("Something is wrong with the target.")
             print("Supported targets are : ")
@@ -41,7 +43,10 @@ class Dataset():
         # Normalization
         self.df['Z_Value'] = (self.df['Value'] - self.df['Value'].mean()) / self.df['Value'].std()
 
-        if os.path.exists(f"{ROOT}/data/DATADUMP/{self.target}.pickle"):
+        self.mean = self.df['Value'].mean()
+        self.std = self.df['Value'].std()
+
+        if os.path.exists(f"{root}/data/DATADUMP/{self.target}.pickle"):
             self.loadPickle()
         else:
             self.initialize()
@@ -72,7 +77,7 @@ class Dataset():
     def loadPickle(self):
         if self.verbose : print(f"\tDataDump found for \'{self.target}\'. Loading dumped data.")
 
-        with open(f'{ROOT}/data/DATADUMP/{self.target}.pickle', 'rb') as fp:
+        with open(f'{self.root}/data/DATADUMP/{self.target}.pickle', 'rb') as fp:
             self.total_set = pickle.load(fp)
 
         return
@@ -86,7 +91,7 @@ class Dataset():
             result = src.smiles2data.smiles2data(row.SMILES, row.Z_Value)
             if (result != -1): self.total_set.append(result)
 
-        with open(f'{ROOT}/data/DATADUMP/{self.target}.pickle', 'wb') as fp:
+        with open(f'{self.root}/data/DATADUMP/{self.target}.pickle', 'wb') as fp:
             pickle.dump(self.total_set, fp)
 
         return

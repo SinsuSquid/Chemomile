@@ -3,18 +3,18 @@ if __name__ == '__main__':
     from src.train import Training
     
     parameters = dict(
-        target = 'ESOL',
-        subfrag_size = 4,
-        edge_size = 1,
+        target = 'FREESOLV',
+        subfrag_size = 12,
+        edge_size = 3,
         out_size = 1,
         seed = 42,
         batch_size = 128,
         max_epoch = 200,
         verbose = True,
         
-        hidden_size = 30,
-        dropout = 0.256,
-        num_layers = 2,
+        hidden_size = 72,
+        dropout = 0.208,
+        num_layers = 3,
         num_timesteps = 2,
         lr_init = 0.001,
         gamma = 0.994,

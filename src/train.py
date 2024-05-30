@@ -3,11 +3,12 @@ import datetime
 from src.model import Chemomile
 
 class Training():
-    def __init__(self, parameters, dataset):
+    def __init__(self, parameters, dataset, root = "./Model"):
         torch.manual_seed(seed = parameters['seed'])
 
         self.parameters = parameters
         self.dataset = dataset
+        self.root = root
         
         self.training_loader = self.dataset.training_loader
         self.validation_loader = self.dataset.validation_loader
@@ -49,7 +50,11 @@ class Training():
                                   sub_batch = data.sub_batch, 
                                   jt_index = data.jt_index,
                                   jt_attr = data.jt_attr,
-                                  numFrag = data.numFrag)
+                                  numFrag = data.numFrag,
+                                  mol_x = data.mol_x,
+                                  mol_edge_index = data.mol_edge_index,
+                                  mol_edge_attr = data.mol_edge_attr,
+                                  numAtom = data.numAtom)
             loss_obj = self.loss(out.flatten(), data.y.to(self.device))
         
             test_loss += loss_obj.mean()
@@ -59,8 +64,8 @@ class Training():
         
         test_loss = test_loss / len(self.test_loader)
         
-        true = np.concatenate(true) * self.dataset.df['Value'].std() + self.dataset.df['Value'].mean()
-        pred = np.concatenate(pred) * self.dataset.df['Value'].std() + self.dataset.df['Value'].mean()
+        true = np.concatenate(true) * self.dataset.std + self.dataset.mean
+        pred = np.concatenate(pred) * self.dataset.std + self.dataset.mean
 
         return true, pred
 
@@ -75,7 +80,11 @@ class Training():
                              sub_batch = data.sub_batch, 
                              jt_index = data.jt_index,
                              jt_attr = data.jt_attr,
-                             numFrag = data.numFrag)
+                             numFrag = data.numFrag,
+                             mol_x = data.mol_x,
+                             mol_edge_index = data.mol_edge_index,
+                             mol_edge_attr = data.mol_edge_attr,
+                             numAtom = data.numAtom)
     
             loss_obj = self.loss(out.flatten(), data.y.to(self.device))
             training_loss += loss_obj.mean()
@@ -99,7 +108,11 @@ class Training():
                              sub_batch = data.sub_batch, 
                              jt_index = data.jt_index,
                              jt_attr = data.jt_attr,
-                             numFrag = data.numFrag)
+                             numFrag = data.numFrag,
+                             mol_x = data.mol_x,
+                             mol_edge_index = data.mol_edge_index,
+                             mol_edge_attr = data.mol_edge_attr,
+                             numAtom = data.numAtom)
     
             loss_obj = self.loss(out.flatten(), data.y.to(self.device))
             validation_loss += loss_obj.mean()
@@ -129,7 +142,7 @@ class Training():
             
             if (self.history['validation'][-1] < valLoss_min):
                 if self.parameters['verbose'] : print(f"\tSaving the best model with valLoss : {self.history['validation'][-1]:.3f}")
-                torch.save(self.model.state_dict(), f"./Model/{self.parameters['target']}-{self.timestamp}")
+                torch.save(self.model.state_dict(), f"{self.root}/{self.parameters['target']}-{self.timestamp}")
                 valLoss_min = self.history['validation'][-1]
                 self.best_model = self.model
 

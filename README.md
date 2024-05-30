@@ -1,2 +1,3 @@
 # GeometryInput
-I don't know anything anymore ...
+
+CHEMOMILE : CHEMically Optimized Machine Intelligence Learning Engine
