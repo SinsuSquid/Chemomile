@@ -63,6 +63,8 @@ HYBRIDIZATION = [
     rdkit.Chem.rdchem.HybridizationType.OTHER,
 ]
 
+ORGANICATOMS = ["H", "C", "N", "O", "F", "P", "S", "Cl", "Br", "I"]
+
 def smiles2data(smiles, y, seed = 42):
     try:
         mol = Chem.MolFromSmiles(smiles, sanitize = True) # default mol object
@@ -92,10 +94,12 @@ def smiles2data(smiles, y, seed = 42):
         # NOTE : Unwanted re-indexing happens while Using DataLoader.
         #        So, we'll handle this problem within the model, with function named "batchMaker"
 
+        isOrganic = checkOrganic(mol)
+
         data = Data(x = x, edge_index = edge_index, edge_attr = edge_attr, sub_batch = sub_batch, numFrag = numFrag, 
                     jt_index = jt_index, jt_attr = jt_attr,
                     mol_x = mol_x, mol_edge_index = mol_edge_index.T.tolist(), mol_edge_attr = mol_edge_attr.tolist(), numAtom = numAtom,
-                    y = y, smiles = smiles)
+                    y = y, smiles = smiles, isOrganic = isOrganic)
 
         # printData(data)
 
@@ -106,6 +110,13 @@ def smiles2data(smiles, y, seed = 42):
         data = -1
 
     return data
+
+def checkOrganic(mol):
+    result = True
+    for atom in mol.GetAtoms():
+        if atom.GetSymbol() not in ORGANICATOMS:
+            result = False
+    return result
 
 def printData(data):
     for key in data.keys():
@@ -219,4 +230,5 @@ if __name__ == '__main__':
     SMILES = "C1=CC2=C(C=C1O)C(=CN2)CCN"
     y = 1.00
 
-    smiles2data(SMILES,y)
+    data = smiles2data(SMILES,y)
+    print(data.x)

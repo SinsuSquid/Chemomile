@@ -1,23 +1,36 @@
 if __name__ == '__main__':
     from src.data import Dataset
     from src.train import Training
+    from src.model import Chemomile
     
     parameters = dict(
-        target = 'FREESOLV',
         subfrag_size = 12,
         edge_size = 3,
         out_size = 1,
         seed = 42,
-        batch_size = 128,
+        batch_size = 256,
         max_epoch = 200,
         verbose = True,
+        save = False,
         
-        hidden_size = 72,
-        dropout = 0.208,
-        num_layers = 3,
-        num_timesteps = 2,
-        lr_init = 0.001,
-        gamma = 0.994,
+        target = 'ESOL',
+        hidden_size = 91,
+        dropout = 0.281,
+        num_layers = 2,
+        num_timesteps = 3,
+        lr_init = 0.01,
+        gamma = 0.980,
+        weight_decay = 6.0E-5,
+    )
+
+    model = Chemomile(
+        subfrag_size = parameters['subfrag_size'],
+        hidden_size = parameters['hidden_size'],
+        out_size = parameters['out_size'],
+        edge_size = parameters['edge_size'],
+        dropout = parameters['dropout'],
+        num_layers = parameters['num_layers'],
+        num_timesteps = parameters['num_timesteps'],
     )
 
     dataset = Dataset(
@@ -27,7 +40,7 @@ if __name__ == '__main__':
         verbose = parameters['verbose']
     )
 
-    train = Training(parameters, dataset = dataset)
+    train = Training(model, parameters, dataset = dataset)
     train.run()
 
     print(f"Metrics - Target : {parameters['target']}")

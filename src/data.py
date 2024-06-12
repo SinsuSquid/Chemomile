@@ -19,7 +19,7 @@ DIPPR = ['FP', 'AIT', 'FLVL', 'FLVU', 'HCOM']
 
 class Dataset():
     def __init__(self, target, seed = 42, batch_size = 1, verbose = True,
-                 root = ROOT):
+                 root = ROOT, organicOnly = False):
         self.target = target
         self.seed = seed
         self.batch_size = batch_size
@@ -51,6 +51,9 @@ class Dataset():
         else:
             self.initialize()
 
+        if organicOnly:
+            self.total_set = [data for data in self.total_set if data.isOrganic]
+
         self.loader_initialize()
 
         return
@@ -67,6 +70,7 @@ class Dataset():
                                             batch_size = self.batch_size)
         self.test_loader = DataLoader(self.total_set[int(0.9 * length):],
                                       batch_size = self.batch_size)
+        self.total_loader = DataLoader(self.total_set, batch_size = self.batch_size)
 
         if self.verbose : 
             print(f"Training : {len(self.training_loader.dataset)} | Validation : {len(self.validation_loader.dataset)} | Test : {len(self.test_loader.dataset)}")

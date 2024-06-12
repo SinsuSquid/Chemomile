@@ -3,9 +3,10 @@ import datetime
 from src.model import Chemomile
 
 class Training():
-    def __init__(self, parameters, dataset, root = "./Model"):
+    def __init__(self, model, parameters, dataset, root = "./Model"):
         torch.manual_seed(seed = parameters['seed'])
 
+        self.model = model
         self.parameters = parameters
         self.dataset = dataset
         self.root = root
@@ -13,56 +14,70 @@ class Training():
         self.training_loader = self.dataset.training_loader
         self.validation_loader = self.dataset.validation_loader
         self.test_loader = self.dataset.test_loader
+        self.total_loader = self.dataset.total_loader
 
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        self.model = Chemomile(
-            subfrag_size = self.parameters['subfrag_size'],
-            hidden_size = self.parameters['hidden_size'],
-            out_size = self.parameters['out_size'],
-            edge_size = self.parameters['edge_size'],
-            dropout = self.parameters['dropout'],
-            num_layers = self.parameters['num_layers'],
-            num_timesteps = self.parameters['num_timesteps']
-        )
         self.best_model = self.model
         
         self.timestamp = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         self.loss = torch.nn.MSELoss()
-        self.optim = torch.optim.Adam(self.model.parameters(), lr = self.parameters['lr_init'])
+        self.optim = torch.optim.Adam(self.model.parameters(), lr = self.parameters['lr_init'],
+                                      weight_decay = self.parameters['weight_decay'])
         self.scheduler = torch.optim.lr_scheduler.ExponentialLR(self.optim, gamma = self.parameters['gamma'])
 
         self.history = {'training' : [], 'validation' : [], 'lr' : []}
 
         return
 
-    def eval(self):
+    def eval(self, total = False):
         import numpy as np
   
         self.best_model.eval()
         
         test_loss = 0; true = []; pred = []
-        
-        for data in self.test_loader:
-            out = self.best_model(x = data.x, 
-                                  edge_index = data.edge_index, 
-                                  edge_attr = data.edge_attr,
-                                  sub_batch = data.sub_batch, 
-                                  jt_index = data.jt_index,
-                                  jt_attr = data.jt_attr,
-                                  numFrag = data.numFrag,
-                                  mol_x = data.mol_x,
-                                  mol_edge_index = data.mol_edge_index,
-                                  mol_edge_attr = data.mol_edge_attr,
-                                  numAtom = data.numAtom)
-            loss_obj = self.loss(out.flatten(), data.y.to(self.device))
-        
-            test_loss += loss_obj.mean()
-        
-            true.append(data.y.numpy())
-            pred.append(out.to('cpu').detach().flatten().numpy())
+
+        if not total:
+            for data in self.test_loader:
+                out = self.best_model(x = data.x, 
+                                      edge_index = data.edge_index, 
+                                      edge_attr = data.edge_attr,
+                                      sub_batch = data.sub_batch, 
+                                      jt_index = data.jt_index,
+                                      jt_attr = data.jt_attr,
+                                      numFrag = data.numFrag,
+                                      mol_x = data.mol_x,
+                                      mol_edge_index = data.mol_edge_index,
+                                      mol_edge_attr = data.mol_edge_attr,
+                                      numAtom = data.numAtom)
+                loss_obj = self.loss(out.flatten(), data.y.to(self.device))
+            
+                test_loss += loss_obj.mean()
+            
+                true.append(data.y.numpy())
+                pred.append(out.to('cpu').detach().flatten().numpy())
+        else:
+            for data in self.total_loader:
+                out = self.best_model(x = data.x, 
+                                      edge_index = data.edge_index, 
+                                      edge_attr = data.edge_attr,
+                                      sub_batch = data.sub_batch, 
+                                      jt_index = data.jt_index,
+                                      jt_attr = data.jt_attr,
+                                      numFrag = data.numFrag,
+                                      mol_x = data.mol_x,
+                                      mol_edge_index = data.mol_edge_index,
+                                      mol_edge_attr = data.mol_edge_attr,
+                                      numAtom = data.numAtom)
+                loss_obj = self.loss(out.flatten(), data.y.to(self.device))
+            
+                test_loss += loss_obj.mean()
+            
+                true.append(data.y.numpy())
+                pred.append(out.to('cpu').detach().flatten().numpy())
         
         test_loss = test_loss / len(self.test_loader)
+        self.test_loss = test_loss.to('cpu').item()
         
         true = np.concatenate(true) * self.dataset.std + self.dataset.mean
         pred = np.concatenate(pred) * self.dataset.std + self.dataset.mean
@@ -141,13 +156,14 @@ class Training():
                 print(f"| Epoch : {epoch:>4d} | Trn. Loss : {self.history['training'][-1]:.3e} | Val. Loss : {self.history['validation'][-1]:.3e} | LR : {self.history['lr'][-1]:.3e} |")
             
             if (self.history['validation'][-1] < valLoss_min):
-                if self.parameters['verbose'] : print(f"\tSaving the best model with valLoss : {self.history['validation'][-1]:.3f}")
-                torch.save(self.model.state_dict(), f"{self.root}/{self.parameters['target']}-{self.timestamp}")
+                if self.parameters['save'] : 
+                    if self.parameters['verbose'] : print(f"\tSaving the best model with valLoss : {self.history['validation'][-1]:.3f}")
+                    torch.save(self.model.state_dict(), f"{self.root}/{self.parameters['target']}-{self.timestamp}")
                 valLoss_min = self.history['validation'][-1]
                 self.best_model = self.model
 
-        true, pred = self.eval()
-        self.metrics(true, pred)
+        self.true, self.pred = self.eval()
+        self.metrics(self.true, self.pred)
 
         return
 
@@ -190,25 +206,21 @@ class Training():
 
         return self.mae, self.rmse, self.mdape, self.r2
 
-    def TPPlot(self, figsize = (6,6), dpi = 200, color = '#92A8D1'):
+    def TPPlot(self, figsize = (8,6), dpi = 200, color = '#92A8D1'):
         import matplotlib.pyplot as plt
 
-        true, pred = self.eval()
-        
-        figure = plt.figure(figsize = figsize, dpi = dpi)
+        fig = plt.figure(figsize = figsize, dpi = dpi)
         ax = plt.gca()
-
+        
         ax.set_title(self.parameters['target'])
         ax.set_xlabel("True")
         ax.set_ylabel("Predicted")
 
-        ax.plot([true.min(), true.max()], [true.min(), true.max()], color = 'k', ls = '--')
-        ax.scatter(true, pred, alpha = 0.75, color = color)
+        ax.plot([self.true.min(), self.true.max()], [self.true.min(), self.true.max()], color = 'k', ls = '--')
+        ax.scatter(self.true, self.pred, alpha = 0.75, color = color)
 
         annot = f"MAE   : {self.mae:>8.3f}\nRMSE  : {self.rmse:>8.3f}\nMDAPE : {self.mdape:>8.3f}\nR$^2$ : {self.r2:>6.3f}"
         ax.annotate(annot, xy = (0.6, 0.1), xycoords = 'axes fraction')
-
-        plt.show()
 
         return
 

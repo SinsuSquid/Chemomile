@@ -21,7 +21,7 @@ class Chemomile(torch.nn.Module):
         self.num_layers = num_layers
         self.num_timesteps = num_timesteps
 
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
         self.subfrag_level = AttentiveFP(in_channels = self.subfrag_size,
                                          hidden_channels = 2 * self.hidden_size,
