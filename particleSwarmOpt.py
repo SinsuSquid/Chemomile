@@ -4,7 +4,7 @@ from src.train import Training
 from src.model import Chemomile
 
 parameters = dict(
-    target = 'HCOM',
+    target = 'FLVU',
     subfrag_size = 12,
     edge_size = 3,
     out_size = 1,
@@ -16,8 +16,8 @@ parameters = dict(
 )
 
 # hidden_size, dropout, num_layers, num_timestep, lr_init, gamma, weight_decay
-bounds = (np.array([ 10, 0.2, 1, 1, 1, 0.975, 0.0]),  # lower bounds
-          np.array([100, 0.5, 5, 5, 5, 0.999, 0.1]))  # upper bounds
+bounds = (np.array([ 16, 0.2, 1, 1, 1, 0.975, 0.0]),  # lower bounds
+          np.array([256, 0.5, 5, 5, 5, 0.999, 0.1]))  # upper bounds
 
 dataset = Dataset(
     target = parameters['target'],
@@ -25,6 +25,9 @@ dataset = Dataset(
     batch_size = parameters['batch_size'],
     verbose = parameters['verbose']
 )
+
+fp = open(f'./log/PSO_{parameters["target"]}', 'w')
+print("#\trmse\thidden_size\tdropout\tnum_layers\tnum_timesteps\tlr_init\tgamma\tweight_decay", file = fp, flush = True)
 
 def target_function(input_array):
     new_params = parameters
@@ -52,6 +55,7 @@ def target_function(input_array):
     train.run()
 
     print(f"\nTestLoss : {train.test_loss}, RMSE : {train.rmse}")
+    print(f"{train.rmse}\t{new_params['hidden_size']}\t{new_params['dropout']}\t{new_params['num_layers']}\t{new_params['num_timesteps']}\t{new_params['lr_init']}\t{new_params['gamma']}\t{new_params['weight_decay']}", file = fp, flush = True)
 
     return np.array([train.test_loss])
 
@@ -60,10 +64,14 @@ from pyswarms.utils.functions import single_obj as fx
 
 options = {'c1': 0.5, 'c2': 0.3, 'w': 0.9}
 
-optimizer = ps.single.GlobalBestPSO(n_particles = 10, dimensions = 7,
+optimizer = ps.single.GlobalBestPSO(n_particles = 7, dimensions = 7,
                                     bounds = bounds, options = options)
 
-stats = optimizer.optimize(target_function, iters = 50, n_processes = 10)
+stats = optimizer.optimize(target_function, iters = 50, n_processes = 7)
 
 print(stats)
+
+fp.close()
+
+print("\t>:D Done !")
 

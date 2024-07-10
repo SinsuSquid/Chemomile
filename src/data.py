@@ -62,13 +62,13 @@ class Dataset():
         random.seed(self.seed)
         random.shuffle(self.total_set)
 
-        length = len(self.total_set)
+        self.length = len(self.total_set)
 
-        self.training_loader = DataLoader(self.total_set[:int(0.8 * length)],
+        self.training_loader = DataLoader(self.total_set[:int(0.8 * self.length)],
                                           batch_size = self.batch_size)
-        self.validation_loader = DataLoader(self.total_set[int(0.8 * length):int(0.9 * length)],
+        self.validation_loader = DataLoader(self.total_set[int(0.8 * self.length):int(0.9 * self.length)],
                                             batch_size = self.batch_size)
-        self.test_loader = DataLoader(self.total_set[int(0.9 * length):],
+        self.test_loader = DataLoader(self.total_set[int(0.9 * self.length):],
                                       batch_size = self.batch_size)
         self.total_loader = DataLoader(self.total_set, batch_size = self.batch_size)
 
@@ -99,6 +99,26 @@ class Dataset():
             pickle.dump(self.total_set, fp)
 
         return
+
+    def BaggingLoaders(self, k = 5):
+        training_loaders = []
+        validation_loaders = []
+
+        samplePool = self.total_set[:int(0.9 * self.length)]
+        sampleSize = len(samplePool)
+
+        for _ in range(k):
+            random.shuffle(samplePool)
+            training_loaders.append(
+                    DataLoader(samplePool[int(1.0/k * sampleSize):],
+                        batch_size = self.batch_size),
+                    )
+            validation_loaders.append(
+                    DataLoader(samplePool[:int(1.0/k * sampleSize)],
+                        batch_size = self.batch_size),
+                    )
+
+        return training_loaders, validation_loaders
 
 if __name__ == '__main__':
     dataset = Dataset('ESOL', batch_size = 32, seed = 42)

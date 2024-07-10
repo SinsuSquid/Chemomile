@@ -2,6 +2,7 @@ if __name__ == '__main__':
     from src.data import Dataset
     from src.train import Training
     from src.model import Chemomile
+    from src.ensemble import EnsembleTraining
     
     parameters = dict(
         subfrag_size = 12,
@@ -10,7 +11,7 @@ if __name__ == '__main__':
         seed = 42,
         batch_size = 256,
         max_epoch = 200,
-        verbose = True,
+        verbose = False,
         save = False,
         
         target = 'FP',
@@ -23,16 +24,6 @@ if __name__ == '__main__':
         weight_decay = 3.5E-3,
     )
 
-    model = Chemomile(
-        subfrag_size = parameters['subfrag_size'],
-        hidden_size = parameters['hidden_size'],
-        out_size = parameters['out_size'],
-        edge_size = parameters['edge_size'],
-        dropout = parameters['dropout'],
-        num_layers = parameters['num_layers'],
-        num_timesteps = parameters['num_timesteps'],
-    )
-
     dataset = Dataset(
         target = parameters['target'],
         seed = parameters['seed'],
@@ -40,13 +31,17 @@ if __name__ == '__main__':
         verbose = parameters['verbose']
     )
 
-    train = Training(model, parameters, dataset = dataset)
-    train.run()
+    ensemble = EnsembleTraining(
+            numEnsemble = 10,
+            parameters = parameters, 
+            dataset = dataset)
 
-    print(f"Metrics - Target : {parameters['target']}")
-    print(f"\tMAE : {train.mae:6.3f}")
-    print(f"\tRMSE : {train.rmse:6.3f}")
-    print(f"\tMDAPE : {train.mdape:6.3f}")
-    print(f"\tR2 : {train.r2:6.3f}")
+    ensemble.run()
 
-    train.TPPlot()
+    print(f"metrics - target : {parameters['target']}")
+    print(f"\tmae : {ensemble.mae:6.3f}")
+    print(f"\trmse : {ensemble.rmse:6.3f}")
+    print(f"\tmdape : {ensemble.mdape:6.3f}")
+    print(f"\tr2 : {ensemble.r2:6.3f}")
+
+    ensemble.TPPlot()

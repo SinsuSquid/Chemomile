@@ -78,7 +78,7 @@ class Training():
         
         test_loss = test_loss / len(self.test_loader)
         self.test_loss = test_loss.to('cpu').item()
-        
+
         true = np.concatenate(true) * self.dataset.std + self.dataset.mean
         pred = np.concatenate(pred) * self.dataset.std + self.dataset.mean
 

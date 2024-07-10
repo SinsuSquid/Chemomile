@@ -23,7 +23,12 @@ class Chemomile(torch.nn.Module):
 
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-        self.subfrag_level = AttentiveFP(in_channels = self.subfrag_size,
+        self.atom_encoder = torch.nn.Sequential(
+                torch.nn.Linear(self.subfrag_size, self.hidden_size),
+                torch.nn.LeakyReLU()
+        ).to(self.device)
+
+        self.subfrag_level = AttentiveFP(in_channels = self.hidden_size,
                                          hidden_channels = 2 * self.hidden_size,
                                          out_channels = self.hidden_size,
                                          edge_dim = self.edge_size,
@@ -39,7 +44,7 @@ class Chemomile(torch.nn.Module):
                                           num_timesteps = self.num_timesteps,
                                           dropout = self.dropout).to(self.device)
 
-        self.molecule_level = AttentiveFP(in_channels = self.subfrag_size,
+        self.molecule_level = AttentiveFP(in_channels = self.hidden_size,
                                           hidden_channels = 2 * self.hidden_size,
                                           out_channels = self.hidden_size,
                                           edge_dim = self.edge_size,
@@ -61,6 +66,9 @@ class Chemomile(torch.nn.Module):
         return
 
     def reset_parameters(self):
+        for layer in self.atom_encoder:
+            if isinstance(layer, torch.nn.Linear):
+                layer.reset_parameters()
         self.subfrag_level.reset_parameters()
         self.fragment_level.reset_parameters()
         self.molecule_level.reset_parameters()
@@ -127,8 +135,8 @@ class Chemomile(torch.nn.Module):
                 mol_x, mol_edge_index, mol_edge_attr, numAtom):
 
         jt_index, jt_attr, jt_batch = self.jtBatchMaker(numFrag, jt_index, jt_attr)
-
         x = x.to(self.device)
+        x = self.atom_encoder(x)
         edge_index = edge_index.to(self.device)
         edge_attr = edge_attr.to(self.device)
         sub_batch = sub_batch.to(self.device)
@@ -147,6 +155,7 @@ class Chemomile(torch.nn.Module):
     
         mol_edge_index, mol_edge_attr, mol_batch = self.molBatchMaker(numAtom, mol_edge_index, mol_edge_attr)
         mol_x = mol_x.to(self.device)
+        mol_x = self.atom_encoder(mol_x)
         mol_edge_index = mol_edge_index.to(self.device)
         mol_edge_attr = mol_edge_attr.to(self.device)
         mol_batch = mol_batch.to(self.device)
