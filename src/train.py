@@ -222,5 +222,7 @@ class Training():
         annot = f"MAE   : {self.mae:>8.3f}\nRMSE  : {self.rmse:>8.3f}\nMDAPE : {self.mdape:>8.3f}\nR$^2$ : {self.r2:>6.3f}"
         ax.annotate(annot, xy = (0.6, 0.1), xycoords = 'axes fraction')
 
+        plt.show()
+
         return
 

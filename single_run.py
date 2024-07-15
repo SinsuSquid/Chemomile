@@ -8,19 +8,19 @@ if __name__ == '__main__':
         edge_size = 3,
         out_size = 1,
         seed = 42,
-        batch_size = 256,
+        batch_size = 512,
         max_epoch = 200,
         verbose = True,
         save = False,
         
-        target = 'FP',
-        hidden_size = 84,
-        dropout = 0.350,
+        target = 'AIT',
+        hidden_size = 65,
+        dropout = 0.266,
         num_layers = 4,
         num_timesteps = 4,
         lr_init = 0.01,
-        gamma = 0.994,
-        weight_decay = 3.5E-3,
+        gamma = 0.995,
+        weight_decay = 1.8E-3,
     )
 
     model = Chemomile(

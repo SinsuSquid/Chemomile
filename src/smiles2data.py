@@ -4,6 +4,7 @@ import rdkit
 
 from rdkit import Chem
 from rdkit.Chem import AllChem
+from rdkit.Chem import BRICS
 from torch_geometric.data import Data
 
 BONDTYPE = [
@@ -66,32 +67,25 @@ HYBRIDIZATION = [
 ORGANICATOMS = ["H", "C", "N", "O", "F", "P", "S", "Cl", "Br", "I"]
 
 def smiles2data(smiles, y, seed = 42):
+    mol = Chem.MolFromSmiles(smiles, sanitize = True) # default mol object
+
     try:
-        mol = Chem.MolFromSmiles(smiles, sanitize = True) # default mol object
-        acyclic_single = [idx for idx, bond in enumerate(mol.GetBonds())
-                               if (bond.GetBondType() == Chem.rdchem.BondType.SINGLE) and (not bond.IsInRing())]
+        molH = AllChem.AddHs(mol)
+        AllChem.EmbedMolecule(molH)
+        AllChem.MMFFOptimizeMolecule(molH)
+        
+        mol_broken = BRICS.BreakBRICSBonds(molH)
+        brics_bonds = BRICS.FindBRICSBonds(molH)
+        fragments_mol = Chem.GetMolFrags(mol_broken, asMols = True) # stores Mol objects of fragments
+        fragments_tuple = Chem.GetMolFrags(mol_broken, asMols = False) # stores atomic indices of fragments
 
-        mol_H = Chem.AddHs(mol) # molecule with Hydrogens
-        AllChem.EmbedMultipleConfs(mol, 10)
-        optResult = AllChem.MMFFOptimizeMoleculeConfs(mol, maxIters=2000)
-
-        fragments_mol = []
-        fragments_atom = []
-
-        if len(acyclic_single) == 0: # molecule with no fragments
-            fragments_mol.append(mol_H)
-        else: # molecule with more than 2 fragments
-            mol_div = Chem.FragmentOnBonds(mol, acyclic_single, addDummies = True)
-            fragments_mol = Chem.GetMolFrags(mol_div, asMols = True) # mol objects
-            fragments_atom = Chem.GetMolFrags(mol_div, asMols = False) # tuple of atom index
-
-        x, edge_index, edge_attr, sub_batch = subfragment_data(fragments_mol, seed = seed)
-        jt_index, jt_attr = junction_tree(mol, fragments_atom, acyclic_single)
-        mol_x, mol_edge_index, mol_edge_attr, mol_batch = subfragment_data([mol_H], seed = seed)
+        x, edge_index, edge_attr, sub_batch = subfragment_data(fragments_mol)
+        jt_index, jt_attr = junction_tree(molH, fragments_tuple, brics_bonds)
+        mol_x, mol_edge_index, mol_edge_attr, mol_batch = subfragment_data([molH])
         numFrag = len(fragments_mol)
         numAtom = mol_x.shape[0]
         
-        # NOTE : Unwanted re-indexing happens while Using DataLoader.
+        # NOTE : Unwanted re-indexing happens while using DataLoader given by PyG.
         #        So, we'll handle this problem within the model, with function named "batchMaker"
 
         isOrganic = checkOrganic(mol)
@@ -103,13 +97,12 @@ def smiles2data(smiles, y, seed = 42):
 
         # printData(data)
 
-    except (RuntimeError, ValueError, AttributeError) as e:
-        print(smiles)
-        print(e)
+        return data
+  
+    except Exception as e:
+        print("Error occured while parsing ", smiles)
+        return -1
 
-        data = -1
-
-    return data
 
 def checkOrganic(mol):
     result = True
@@ -127,14 +120,11 @@ def printData(data):
             print(f"{key}", data[key])
     return 
 
-def junction_tree(mol, fragments_atom, acyclic_single):
+def junction_tree(molH, fragments_atom, brics_bonds):
     jt_index = []; jt_attr = []
 
-    for bond_index in acyclic_single:
-        bond = mol.GetBondWithIdx(bond_index)
-        i = bond.GetBeginAtomIdx()
-        j = bond.GetEndAtomIdx()
-
+    for (i, j), (_, _) in brics_bonds:
+        bond = molH.GetBondBetweenAtoms(i, j)
         frag_pair = [100, 100]
         
         edge_data = [BONDTYPE.index(bond.GetBondType())]
@@ -151,26 +141,15 @@ def junction_tree(mol, fragments_atom, acyclic_single):
         jt_index.append(frag_pair[::-1])
         jt_attr += [edge_data]
         jt_attr += [edge_data]
-
     
     return jt_index, jt_attr
 
-def subfragment_data(fragments_mol, seed = 42):
+def subfragment_data(fragments_mol):
     x = []; edge_indices = []; edge_attr = []; batch = []
     batch_idx = 0; num_atoms = 0
 
     for frag in fragments_mol:
-        frag = Chem.AddHs(frag)
-        Chem.SanitizeMol(frag)
-        AllChem.EmbedMultipleConfs(frag, 10)
-        optResult = AllChem.MMFFOptimizeMoleculeConfs(frag, maxIters=2000)
-        minIdx = 100000; minEng = 10000.0
-        for idx, (converged, energy) in enumerate(optResult):
-            if (energy < minEng): 
-                minIdx = idx
-                minEng = energy
-        conf = frag.GetConformer(minIdx)
-
+        conf = frag.GetConformer()
         position = np.array(conf.GetPositions())
         com = position.mean(axis = 0)
 

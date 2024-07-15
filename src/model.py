@@ -25,6 +25,7 @@ class Chemomile(torch.nn.Module):
 
         self.atom_encoder = torch.nn.Sequential(
                 torch.nn.Linear(self.subfrag_size, self.hidden_size),
+                torch.nn.BatchNorm1d(self.hidden_size),
                 torch.nn.LeakyReLU()
         ).to(self.device)
 
@@ -57,6 +58,7 @@ class Chemomile(torch.nn.Module):
                                 out_features = self.hidden_size),
                 torch.nn.LeakyReLU(),
                 torch.nn.Dropout(self.dropout),
+                torch.nn.BatchNorm1d(self.hidden_size),
                 torch.nn.Linear(in_features = self.hidden_size,
                                 out_features = self.out_size),
                 ).to(self.device)

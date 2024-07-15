@@ -1,4 +1,5 @@
 import os
+import sys
 import random
 import pickle
 import pandas as pd
@@ -16,6 +17,7 @@ RDLogger.DisableLog('rdApp.*')
 REGRESSION = ['ESOL', 'FREESOLV', 'LIPOPHILICITY']
 CLASSIFICATION = []
 DIPPR = ['FP', 'AIT', 'FLVL', 'FLVU', 'HCOM']
+TOXICITY = ['RAT_INTRAVENOUS_LD50', 'MOUSE_INTRAPERITONEAL_LD50', 'IGC50']
 
 class Dataset():
     def __init__(self, target, seed = 42, batch_size = 1, verbose = True,
@@ -32,13 +34,16 @@ class Dataset():
             self.df = pd.read_csv(f"{self.root}/data/MOLECULENET/CLASSIFICATION/{self.target}.csv")
         elif self.target in DIPPR:
             self.df = pd.read_csv(f"{self.root}/data/DIPPR/{self.target}.csv")
+        elif self.target in TOXICITY:
+            self.df = pd.read_csv(f"{self.root}/data/TOXICITY/{self.target}.csv")
         else:
             print("Something is wrong with the target.")
             print("Supported targets are : ")
             print(f"\tRegression : {REGRESSION}")
             print(f"\tClassification : {CLASSIFICATION}")
             print(f"\tDIPPR : {DIPPR}")
-            exit(-1)
+            print(f"\tTOXICITY : {TOXICITY}")
+            sys.exit(-1)
 
         # Normalization
         self.df['Z_Value'] = (self.df['Value'] - self.df['Value'].mean()) / self.df['Value'].std()
@@ -121,4 +126,5 @@ class Dataset():
         return training_loaders, validation_loaders
 
 if __name__ == '__main__':
-    dataset = Dataset('ESOL', batch_size = 32, seed = 42)
+    import sys
+    dataset = Dataset('IGC50', batch_size = 32, seed = 42)
