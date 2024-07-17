@@ -4,23 +4,23 @@ from src.train import Training
 from src.model import Chemomile
 
 parameters = dict(
-    target = 'FP',
+    target = 'HCOM',
     subfrag_size = 12,
     edge_size = 3,
     out_size = 1,
     seed = 42,
-    batch_size = 256,
+    batch_size = 128,
     max_epoch = 200,
     verbose = False,
     save = False,
 
-    numParticles = 10,
+    numParticles = 7,
     iterations = 50,
 )
 
 # hidden_size, dropout, num_layers, num_timestep, lr_init, gamma, weight_decay
-bounds = (np.array([ 4, 0.2, 1, 1, 1, 0.975, 0.0]),  # lower bounds
-          np.array([10, 0.5, 10, 10, 5, 0.999, 0.1]))  # upper bounds
+bounds = (np.array([4, 0.2, 1, 1, 1, 0.975, 0.0]),  # lower bounds
+          np.array([9, 0.5, 10, 10, 5, 0.999, 0.1]))  # upper bounds
 
 dataset = Dataset(
     target = parameters['target'],
@@ -70,7 +70,7 @@ options = {'c1': 0.5, 'c2': 0.3, 'w': 0.9}
 optimizer = ps.single.GlobalBestPSO(n_particles = parameters['numParticles'], dimensions = 7,
                                     bounds = bounds, options = options)
 
-stats = optimizer.optimize(target_function, iters = parameters['numParticles'], n_processes = parameters['numParticles'])
+stats = optimizer.optimize(target_function, iters = parameters['iterations'], n_processes = parameters['numParticles'])
 
 print(stats)
 

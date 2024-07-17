@@ -78,7 +78,6 @@ class Explainer():
                                 )
                 results.append(out.item())
 
-        self.results = [(results[i] - self.ref) for i in range(self.data.numAtom)]
         self.results = [(self.ref - results[i]) for i in range(self.data.numAtom)]
 
         return self.results

@@ -9,7 +9,7 @@ if __name__ == '__main__':
         edge_size = 3,
         out_size = 1,
         seed = 42,
-        batch_size = 256,
+        batch_size = 128,
         max_epoch = 200,
         verbose = False,
         save = False,
