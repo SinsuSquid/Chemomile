@@ -2,13 +2,14 @@ import torch
 from torch_geometric.loader import DataLoader
 
 SYMBOL = dict([(1, "H"), (6, "C"), (8, "O"), (7, "N"),
-               (0, "*"), (9, "F"), (15, "P"), (16, "S"),
+               (0, "*"), (9, "F"), (14, "Si"), (15, "P"), (16, "S"),
                (17, "Cl"), (35, "Br"), (53, "I")]) # Atomic Symbol
 
 class Explainer():
-    def __init__(self, model, data):
+    def __init__(self, model, data, numIter = 10):
         self.model = model
         self.data = data
+        self.numIter = numIter
 
         self.model.device = "cpu"
         self.model = self.model.to("cpu")
@@ -18,7 +19,7 @@ class Explainer():
         return
 
     def original(self):
-        original_loader = DataLoader([self.data])
+        original_loader = DataLoader([self.data] * self.numIter, batch_size = self.numIter)
 
         results = []
 
@@ -31,15 +32,15 @@ class Explainer():
                                  sub_batch = data.sub_batch,
                                  jt_index = data.jt_index,
                                  jt_attr = data.jt_attr,
-                                 numFrag = torch.tensor([data.numFrag]).view(-1, ),
+                                 numFrag = data.numFrag,
                                  mol_x = data.mol_x,
                                  mol_edge_index = data.mol_edge_index,
                                  mol_edge_attr = data.mol_edge_attr,
-                                 numAtom = torch.tensor([data.numAtom]).view(-1, ),
+                                 numAtom = data.numAtom,
                                 )
-                results.append(out.item())
+                results.append(out)
 
-        self.ref = sum(results) / len(results)
+        self.ref = torch.stack(results).mean().item()
 
         return
 
@@ -57,7 +58,7 @@ class Explainer():
             temp_data.mol_edge_attr = [self.data.mol_edge_attr[j] for j in masked_list[i]]
             masked_data.append(temp_data)
 
-        masked_loader = DataLoader(masked_data, batch_size = 1)
+        masked_loader = DataLoader(masked_data * self.numIter, batch_size = self.data.numAtom)
 
         results = []
 
@@ -76,9 +77,11 @@ class Explainer():
                                  mol_edge_attr = data.mol_edge_attr,
                                  numAtom = data.numAtom,
                                 )
-                results.append(out.item())
+                results.append(out)
 
-        self.results = [(self.ref - results[i]) for i in range(self.data.numAtom)]
+        results = torch.stack(results).mean(axis = 0)
+
+        self.results = [(results[i] - self.ref) for i in range(self.data.numAtom)]
 
         return self.results
 
