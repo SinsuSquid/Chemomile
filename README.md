@@ -3,13 +3,13 @@
 ![Chemomile_Logo](https://github.com/SinsuSquid/Chemomile/blob/main/icons/Chemomile_Logo.png)
 
 ## Prerequisites
-torch >= 2.3.0
-torch\_geometric >= 2.5.3
-networkx >= 3.3
-rdkit >= 2023.9.6
-rich >= 13.7.1
-scikit-leanr >= 1.5.0
-tqdm >= 4.66.4
+- torch >= 2.3.0
+- torch\_geometric >= 2.5.3
+- networkx >= 3.3
+- rdkit >= 2023.9.6
+- rich >= 13.7.1
+- scikit-leanr >= 1.5.0
+- tqdm >= 4.66.4
 
 ## Notes
 Due to copyright issue, datasets are not included in this git.
