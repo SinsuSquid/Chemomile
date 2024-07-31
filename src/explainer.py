@@ -1,9 +1,104 @@
 import torch
 from torch_geometric.loader import DataLoader
 
-SYMBOL = dict([(1, "H"), (6, "C"), (8, "O"), (7, "N"),
+SYMBOL = dict([(1, "H"), (6, "C"), (8, "O"), (7, "N"), (3, "Li"),
                (0, "*"), (9, "F"), (14, "Si"), (15, "P"), (16, "S"),
                (17, "Cl"), (35, "Br"), (53, "I")]) # Atomic Symbol
+
+class MultiExplainer():
+    def __init__(self, model, dataset, numIter = 10):
+        self.model = model
+        self.dataset = dataset
+        self.numItem = len(self.dataset.total_set)
+        self.numIter = numIter
+
+        # self.device = 'cuda' if torch.cuda_is_available() else 'cpu'
+        self.device = 'cpu'
+        self.model.device = self.device
+        self.model = self.model.to(self.device)
+
+        self.original()
+
+        return
+
+    def original(self):
+        original_loader = DataLoader(self.dataset.total_set * self.numIter,
+                                     batch_size = self.numItem)
+
+        results = []
+
+        with torch.no_grad():
+            self.model.eval()
+            for data in original_loader:
+                out = self.model(x = data.x,
+                                 edge_index = data.edge_index,
+                                 edge_attr = data.edge_attr,
+                                 sub_batch = data.sub_batch,
+                                 jt_index = data.jt_index,
+                                 jt_attr = data.jt_attr,
+                                 numFrag = data.numFrag,
+                                 mol_x = data.mol_x,
+                                 mol_edge_index = data.mol_edge_index,
+                                 mol_edge_attr = data.mol_edge_attr,
+                                 numAtom = data.numAtom,
+                                )
+                results.append(out)
+
+        self.ref = torch.stack(results).mean(axis = 0).numpy().flatten()
+
+    def atomMask(self):
+        from copy import deepcopy
+
+        masked_data = []
+        numAtom_tot = 0
+
+        for data in self.dataset.total_set:
+            numAtom_tot += data.numAtom
+            data = data.to(self.device)
+            masked_list = [[pairIdx for pairIdx, pair in enumerate(data.mol_edge_index)
+                                     if i not in pair]
+                                    for i in range(data.numAtom)]
+
+            for i in range(data.numAtom):
+                temp_data = deepcopy(data)
+                temp_data.mol_edge_index = [data.mol_edge_index[j] for j in masked_list[i]]
+                temp_data.mol_edge_attr = [data.mol_edge_attr[j] for j in masked_list[i]]
+                masked_data.append(temp_data)
+
+        masked_loader = DataLoader(masked_data * self.numIter, batch_size = numAtom_tot)
+
+        results = []
+
+        with torch.no_grad():
+            self.model.eval()
+            for data in masked_loader:
+                out = self.model(x = data.x,
+                                 edge_index = data.edge_index,
+                                 edge_attr = data.edge_attr,
+                                 sub_batch = data.sub_batch,
+                                 jt_index = data.jt_index,
+                                 jt_attr = data.jt_attr,
+                                 numFrag = data.numFrag,
+                                 mol_x = data.mol_x,
+                                 mol_edge_index = data.mol_edge_index,
+                                 mol_edge_attr = data.mol_edge_attr,
+                                 numAtom = data.numAtom,
+                                )
+                results.append(out)
+
+        results = torch.stack(results).mean(axis = 0).flatten().to('cpu').detach().numpy()
+    
+        parsed_results = []; idxPoint = 0
+        for idx, data in enumerate(self.dataset.total_set):
+            tempList = []
+            for j in range(data.numAtom):
+                tempList.append(float(results[idxPoint] - self.ref[idx]))
+                idxPoint += 1
+            parsed_results.append(tempList)
+        self.results = parsed_results
+
+        return self.results
+
 
 class Explainer():
     def __init__(self, model, data, numIter = 10):

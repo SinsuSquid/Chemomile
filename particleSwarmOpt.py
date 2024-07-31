@@ -4,17 +4,19 @@ from src.train import Training
 from src.model import Chemomile
 
 parameters = dict(
-    target = 'HCOM',
+    target = 'RAT_INTRAPERITONEAL_LD50',
+#   target = 'MOUSE_INTRAPERITONEAL_LDLo',
+#   target = 'IGC50',
     subfrag_size = 12,
     edge_size = 3,
     out_size = 1,
     seed = 42,
-    batch_size = 128,
+    batch_size = 64,
     max_epoch = 200,
     verbose = False,
     save = False,
 
-    numParticles = 7,
+    numParticles = 5,
     iterations = 50,
 )
 

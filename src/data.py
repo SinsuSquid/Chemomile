@@ -17,7 +17,8 @@ RDLogger.DisableLog('rdApp.*')
 REGRESSION = ['ESOL', 'FREESOLV', 'LIPOPHILICITY']
 CLASSIFICATION = []
 DIPPR = ['FP', 'AIT', 'FLVL', 'FLVU', 'HCOM']
-TOXICITY = ['RAT_INTRAVENOUS_LD50', 'MOUSE_INTRAPERITONEAL_LD50', 'IGC50']
+TOXICITY = ['LC50', 'MOUSE_INTRAPERITONEAL_LDLo', 'IGC50', 'RAT_INTRAPERITONEAL_LD50']
+CASESTUDY = ['ORGANOSILICONE']
 
 class Dataset():
     def __init__(self, target, seed = 42, batch_size = 1, verbose = True,
@@ -36,6 +37,8 @@ class Dataset():
             self.df = pd.read_csv(f"{self.root}/data/DIPPR/{self.target}.csv")
         elif self.target in TOXICITY:
             self.df = pd.read_csv(f"{self.root}/data/TOXICITY/{self.target}.csv")
+        elif self.target in CASESTUDY:
+            self.df = pd.read_csv(f"{self.root}/data/CASESTUDY/{self.target}.csv")
         else:
             print("Something is wrong with the target.")
             print("Supported targets are : ")
