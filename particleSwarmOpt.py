@@ -4,9 +4,7 @@ from src.train import Training
 from src.model import Chemomile
 
 parameters = dict(
-    target = 'RAT_INTRAPERITONEAL_LD50',
-#   target = 'MOUSE_INTRAPERITONEAL_LDLo',
-#   target = 'IGC50',
+    target = 'ESOL',
     subfrag_size = 12,
     edge_size = 3,
     out_size = 1,

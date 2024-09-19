@@ -13,7 +13,7 @@ if __name__ == '__main__':
         verbose = True,
         save = False,
         
-        target = 'RAT_INTRAPERITONEAL_LD50',
+        target = 'ESOL',
         hidden_size = 65,
         dropout = 0.266,
         num_layers = 4,
