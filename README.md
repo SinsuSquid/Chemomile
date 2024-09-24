@@ -8,8 +8,9 @@
 - networkx >= 3.3
 - rdkit >= 2023.9.6
 - rich >= 13.7.1
-- scikit-leanr >= 1.5.0
+- scikit-learn >= 1.5.0
 - tqdm >= 4.66.4
+- pyswarms >= 1.3.0
 
 ## Notes
 Due to copyright issue, datasets are not included in this git.
