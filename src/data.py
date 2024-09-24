@@ -14,10 +14,8 @@ ROOT = os.getcwd()
 
 RDLogger.DisableLog('rdApp.*')
 
-REGRESSION = ['ESOL', 'FREESOLV', 'LIPOPHILICITY']
-CLASSIFICATION = []
+MOLECULENET = ['ESOL']
 DIPPR = ['FP', 'AIT', 'FLVL', 'FLVU', 'HCOM']
-TOXICITY = ['LC50', 'MOUSE_INTRAPERITONEAL_LDLo', 'IGC50', 'RAT_INTRAPERITONEAL_LD50']
 CASESTUDY = ['ORGANOSILICONE']
 
 class Dataset():
@@ -29,14 +27,10 @@ class Dataset():
         self.verbose = verbose
         self.root = root
 
-        if self.target in REGRESSION:
-            self.df = pd.read_csv(f"{self.root}/data/MOLECULENET/REGRESSION/{self.target}.csv")
-        elif self.target in CLASSIFICATION:
-            self.df = pd.read_csv(f"{self.root}/data/MOLECULENET/CLASSIFICATION/{self.target}.csv")
+        if self.target in MOLECULENET:
+            self.df = pd.read_csv(f"{self.root}/data/MOLECULENET/{self.target}.csv")
         elif self.target in DIPPR:
             self.df = pd.read_csv(f"{self.root}/data/DIPPR/{self.target}.csv")
-        elif self.target in TOXICITY:
-            self.df = pd.read_csv(f"{self.root}/data/TOXICITY/{self.target}.csv")
         elif self.target in CASESTUDY:
             self.df = pd.read_csv(f"{self.root}/data/CASESTUDY/{self.target}.csv")
         else:
