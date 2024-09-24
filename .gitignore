@@ -1,3 +1,16 @@
+# User Defined .gitignore
+out/*
+Model/*
+data/DATADUMP/*
+data/DIPPR/*
+data/TOXICITY/*
+log/*
+*.out
+*.log
+*.png
+*.xyz
+.*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
