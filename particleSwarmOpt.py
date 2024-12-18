@@ -4,8 +4,8 @@ from src.train import Training
 from src.model import Chemomile
 
 parameters = dict(
-    target = 'ESOL',
-    subfrag_size = 12,
+    target = 'FLVU',
+    subfrag_size = 10,
     edge_size = 3,
     out_size = 1,
     seed = 42,

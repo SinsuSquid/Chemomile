@@ -147,48 +147,103 @@ class EnsembleTraining():
         
         return 
 
-    def eval(self):
+    def eval(self, total = False):
         self.trues = []; self.preds = []
-        for idx, bm in enumerate(self.best_models):
-            bm.eval()
-            self.preds.append([])
-            self.trues.append([])
 
-            for data in self.test_loader:
-                out = bm(x = data.x,
-                            edge_index = data.edge_index,
-                            edge_attr = data.edge_attr,
-                            sub_batch = data.sub_batch,
-                            jt_index = data.jt_index,
-                            jt_attr = data.jt_attr,
-                            numFrag = data.numFrag,
-                            mol_x = data.mol_x,
-                            mol_edge_index = data.mol_edge_index,
-                            mol_edge_attr = data.mol_edge_attr,
-                            numAtom = data.numAtom)
+        if not total:
+            for idx, bm in enumerate(self.best_models):
+                bm.eval()
+                self.preds.append([])
+                self.trues.append([])
 
-                self.preds[idx].append(out.to('cpu').detach().flatten().numpy())
-                self.trues[idx].append(data.y.numpy())
-                
-            self.preds[idx] = np.concatenate(self.preds[idx]) * self.dataset.std + self.dataset.mean
-            self.trues[idx] = np.concatenate(self.trues[idx]) * self.dataset.std + self.dataset.mean
+                for data in self.test_loader:
+                    out = bm(x = data.x,
+                                edge_index = data.edge_index,
+                                edge_attr = data.edge_attr,
+                                sub_batch = data.sub_batch,
+                                jt_index = data.jt_index,
+                                jt_attr = data.jt_attr,
+                                numFrag = data.numFrag,
+                                mol_x = data.mol_x,
+                                mol_edge_index = data.mol_edge_index,
+                                mol_edge_attr = data.mol_edge_attr,
+                                numAtom = data.numAtom)
 
-        self.true = np.stack(self.trues).mean(axis = 0)
-        self.pred = np.stack(self.preds).mean(axis = 0)
+                    self.preds[idx].append(out.to('cpu').detach().flatten().numpy())
+                    self.trues[idx].append(data.y.numpy())
+                    
+                self.preds[idx] = np.concatenate(self.preds[idx]) * self.dataset.std + self.dataset.mean
+                self.trues[idx] = np.concatenate(self.trues[idx]) * self.dataset.std + self.dataset.mean
+
+            self.true = np.stack(self.trues).mean(axis = 0)
+            self.pred = np.stack(self.preds).mean(axis = 0)
+        else:
+            self.device = 'cpu'
+            
+            for idx, bm in enumerate(self.best_models):
+                bm.eval()
+
+                bm.device = 'cpu'
+
+                bm.atom_encoder = bm.atom_encoder.to('cpu')
+                bm.subfrag_level = bm.subfrag_level.to('cpu')
+                bm.fragment_level = bm.fragment_level.to('cpu')
+                bm.molecule_level = bm.molecule_level.to('cpu')
+                bm.fully_connected = bm.fully_connected.to('cpu')
+
+                self.preds.append([])
+                self.trues.append([])
+
+                for data in self.total_loader:
+                    out = bm(x = data.x.to('cpu'),
+                             edge_index = data.edge_index.to('cpu'),
+                             edge_attr = data.edge_attr.to('cpu'),
+                             sub_batch = data.sub_batch.to('cpu'),
+                             jt_index = data.jt_index,
+                             jt_attr = data.jt_attr,
+                             numFrag = data.numFrag.to('cpu'),
+                             mol_x = data.mol_x.to('cpu'),
+                             mol_edge_index = data.mol_edge_index,
+                             mol_edge_attr = data.mol_edge_attr,
+                             numAtom = data.numAtom.to('cpu'))
+
+                    self.preds[idx].append(out.to('cpu').detach().flatten().numpy())
+                    self.trues[idx].append(data.y.numpy())
+                    
+                self.preds[idx] = np.concatenate(self.preds[idx]) * self.dataset.std + self.dataset.mean
+                self.trues[idx] = np.concatenate(self.trues[idx]) * self.dataset.std + self.dataset.mean
+
+            self.true = np.stack(self.trues).mean(axis = 0)
+            self.pred = np.stack(self.preds).mean(axis = 0)
 
         self.metrics()
 
         return self.true, self.pred
+
+    def ensemble_metrics(self, total = False):
+        from sklearn.metrics import r2_score
+
+        if total:
+            self.eval(total = True)
+        else:
+            self.eval(total = False)
+
+        mae = np.array([np.abs(true - pred).mean() for true, pred in zip(self.trues, self.preds)])
+        rmse = np.array([np.sqrt(np.power(true - pred, 2).mean()) for true, pred in zip(self.trues, self.preds)])
+        mape = np.array([np.abs((true - pred) / true * 100).mean() for true, pred in zip(self.trues, self.preds)])
+        r2 = np.array([r2_score(true, pred) for true, pred in zip(self.trues, self.preds)])
+
+        return mae, rmse, mape, r2
         
     def metrics(self):
         from sklearn.metrics import r2_score
         
         self.mae = np.abs(self.true - self.pred).mean()
         self.rmse = np.sqrt(np.power(self.true - self.pred, 2).mean())
-        self.mdape = np.abs((self.true - self.pred) / self.true  * 100).mean()
+        self.mape = np.abs((self.true - self.pred) / self.true  * 100).mean()
         self.r2 = r2_score(self.true, self.pred)
 
-        return self.mae, self.rmse, self.mdape, self.r2
+        return self.mae, self.rmse, self.mape, self.r2
 
     def TPPlot(self, figsize = (8,6), dpi = 200, color = '#92A8D1'):
         import matplotlib.pyplot as plt
@@ -206,7 +261,7 @@ class EnsembleTraining():
         for idx, (true, pred) in enumerate(zip(self.trues, self.preds)):
             ax.scatter(true, pred, s = 5, alpha = 0.2, label = f"ensemble{idx}")
 
-        annot = f"MAE   : {self.mae:>8.3f}\nRMSE  : {self.rmse:>8.3f}\nMDAPE : {self.mdape:>8.3f}\nR$^2$ : {self.r2:>6.3f}"
+        annot = f"MAE   : {self.mae:>8.3f}\nRMSE  : {self.rmse:>8.3f}\nMDAPE : {self.mape:>8.3f}\nR$^2$ : {self.r2:>6.3f}"
         ax.annotate(annot, xy = (0.6, 0.1), xycoords = 'axes fraction')
         ax.legend()
 

@@ -84,6 +84,11 @@ def smiles2data(smiles, y, seed = 42):
         mol_x, mol_edge_index, mol_edge_attr, mol_batch = subfragment_data([molH])
         numFrag = len(fragments_mol)
         numAtom = mol_x.shape[0]
+
+        conf = molH.GetConformer()
+        position = np.array(conf.GetPositions())
+        com = position.mean(axis = 0)
+        position = position - com
         
         # NOTE : Unwanted re-indexing happens while using DataLoader given by PyG.
         #        So, we'll handle this problem within the model, with function named "batchMaker"
@@ -93,13 +98,14 @@ def smiles2data(smiles, y, seed = 42):
         data = Data(x = x, edge_index = edge_index, edge_attr = edge_attr, sub_batch = sub_batch, numFrag = numFrag, 
                     jt_index = jt_index, jt_attr = jt_attr,
                     mol_x = mol_x, mol_edge_index = mol_edge_index.T.tolist(), mol_edge_attr = mol_edge_attr.tolist(), numAtom = numAtom,
-                    y = y, smiles = smiles, isOrganic = isOrganic)
+                    y = y, smiles = smiles, isOrganic = isOrganic, position = position)
 
         # printData(data)
 
         return data
   
     except Exception as e:
+        print(e)
         print("Error occured while parsing ", smiles)
         return -1
 
@@ -154,6 +160,8 @@ def subfragment_data(fragments_mol):
         com = position.mean(axis = 0)
 
         position = position - com # relative position from the centre of mass
+        # converting 3D coordinates to distance from centre of mass
+        distance = np.square(position).sum(axis = 1)
 
         for idx, atom in enumerate(frag.GetAtoms()):
             atom_data = [atom.GetAtomicNum()]
@@ -169,7 +177,7 @@ def subfragment_data(fragments_mol):
             atom_data += [1 if atom.GetIsAromatic() else 0]
             atom_data += [1 if atom.IsInRing() else 0]
             
-            atom_data += tuple(position[idx])
+            atom_data += [distance[idx]]
 
             x.append(atom_data)
             batch.append(batch_idx)
@@ -210,4 +218,4 @@ if __name__ == '__main__':
     y = 1.00
 
     data = smiles2data(SMILES,y)
-    print(data.x)
+    print(data.position)
