@@ -49,4 +49,4 @@ python particleSwarmOpt.py
 ```
 
 ## Comment
-If you're not sure how to use this model, please consult ./Notebooks/
+If you're not sure how to use this model, please consult [some example notebooks](./Notebooks)
