@@ -182,7 +182,7 @@ class Explainer():
 
     def plot(self, ax):
         anum = self.data.mol_x[:,0]
-        coord = self.data.mol_x[:,-3:]
+        coord = self.data.position
         bonds = self.data.mol_edge_index
 
         p = ax.scatter(coord[:,0], coord[:,1] ,coord[:,2], s = 200, c = self.results, cmap = "seismic", alpha = 0.7)
