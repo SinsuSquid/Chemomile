@@ -22,7 +22,7 @@ if __name__ == '__main__':
         verbose = True,
         save = False,
         
-        target = 'ESOL',
+        target = 'FLVU',
     )
 
     parameters = parameters | optimized[parameters['target']]

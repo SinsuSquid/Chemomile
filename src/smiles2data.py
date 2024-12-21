@@ -71,7 +71,11 @@ def smiles2data(smiles, y, seed = 42):
 
     try:
         molH = AllChem.AddHs(mol)
-        AllChem.EmbedMolecule(molH)
+    except:
+        molH = mol
+
+    try:
+        AllChem.EmbedMolecule(molH, useRandomCoords = True)
         AllChem.MMFFOptimizeMolecule(molH)
         
         mol_broken = BRICS.BreakBRICSBonds(molH)
