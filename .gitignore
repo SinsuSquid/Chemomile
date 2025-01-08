@@ -4,6 +4,7 @@ Model/*
 data/DATADUMP/*
 data/DIPPR/*
 data/TOXICITY/*
+Notebooks/result/*
 log/*
 *.out
 *.log
