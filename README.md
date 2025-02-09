@@ -2,7 +2,7 @@
 
 ![Chemomile_Logo](https://github.com/SinsuSquid/Chemomile/blob/main/icons/Chemomile_Logo.png)
 
-"Chemomile: Explainable Multi-Level GNN Model for Combustion Property Prediction", **Beomgyu Kang** and Bong June Sung, *J. Phys. Chem. A* XXXX, XXX, XXX-XXX, https://doi.org/10.1021/acs.jpca.5c00380
+"Chemomile: Explainable Multi-Level GNN Model for Combustion Property Prediction", **Beomgyu Kang** and Bong June Sung*, *J. Phys. Chem. A* XXXX, XXX, XXX-XXX, https://doi.org/10.1021/acs.jpca.5c00380
 
 ## Prerequisites
 - torch >= 2.3.0
