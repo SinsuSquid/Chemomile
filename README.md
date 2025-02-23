@@ -52,3 +52,21 @@ python particleSwarmOpt.py
 
 ## Comment
 If you're not sure how to use this model, please consult [some example notebooks](./Notebooks)
+
+## Citation
+
+```
+@article{doi:10.1021/acs.jpca.5c00380,
+    author = {Kang, Beomgyu and Sung, Bong June},
+    title = {Chemomile: Explainable Multi-Level GNN Model for Combustion Property Prediction},
+    journal = {The Journal of Physical Chemistry A},
+    volume = {129},
+    number = {7},
+    pages = {1880-1889},
+    year = {2025},
+    doi = {10.1021/acs.jpca.5c00380},
+    note ={PMID: 39927844},
+    URL = {https://doi.org/10.1021/acs.jpca.5c00380},
+    eprint = {https://doi.org/10.1021/acs.jpca.5c00380}
+}
+```
