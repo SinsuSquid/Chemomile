@@ -56,7 +56,7 @@ If you're not sure how to use this model, please consult [some example notebooks
 ## Citation
 
 ```
-@article{doi:10.1021/acs.jpca.5c00380,
+@article{kang2025chemomile,
     author = {Kang, Beomgyu and Sung, Bong June},
     title = {Chemomile: Explainable Multi-Level GNN Model for Combustion Property Prediction},
     journal = {The Journal of Physical Chemistry A},
