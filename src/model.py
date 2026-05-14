@@ -83,8 +83,8 @@ class Chemomile(torch.nn.Module):
         jt_batch = torch.repeat_interleave(torch.arange(len(numFrag), device=self.device), numFrag)
 
         # Flatten jt_index and jt_attr lists
-        indices = [torch.as_tensor(idx, dtype=torch.long, device=self.device) for idx in jt_index]
-        attrs = [torch.as_tensor(attr, dtype=torch.float, device=self.device) for attr in jt_attr]
+        indices = [torch.as_tensor(idx, dtype=torch.long, device=self.device).reshape(-1, 2) for idx in jt_index]
+        attrs = [torch.as_tensor(attr, dtype=torch.float, device=self.device).reshape(-1, self.edge_size) for attr in jt_attr]
 
         # Calculate offsets for node indices
         offsets = torch.cat([torch.tensor([0], device=self.device), numFrag.cumsum(0)[:-1]])
@@ -104,8 +104,8 @@ class Chemomile(torch.nn.Module):
         mol_batch = torch.repeat_interleave(torch.arange(len(numAtom), device=self.device), numAtom)
 
         # Flatten mol_edge_index and mol_edge_attr lists
-        indices = [torch.as_tensor(idx, dtype=torch.long, device=self.device) for idx in mol_edge_index]
-        attrs = [torch.as_tensor(attr, dtype=torch.float, device=self.device) for attr in mol_edge_attr]
+        indices = [torch.as_tensor(idx, dtype=torch.long, device=self.device).reshape(-1, 2) for idx in mol_edge_index]
+        attrs = [torch.as_tensor(attr, dtype=torch.float, device=self.device).reshape(-1, self.edge_size) for attr in mol_edge_attr]
 
         # Calculate offsets for node indices
         offsets = torch.cat([torch.tensor([0], device=self.device), numAtom.cumsum(0)[:-1]])

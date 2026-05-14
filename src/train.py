@@ -2,6 +2,25 @@ import torch
 import datetime
 from src.model import Chemomile
 
+class EarlyStopping():
+    def __init__(self, patience=20, min_delta=0):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.best_loss = None
+        self.early_stop = False
+
+    def __call__(self, val_loss):
+        if self.best_loss is None:
+            self.best_loss = val_loss
+        elif val_loss > self.best_loss - self.min_delta:
+            self.counter += 1
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            self.best_loss = val_loss
+            self.counter = 0
+
 class Training():
     def __init__(self, model, parameters, dataset, root = "./Model"):
         torch.manual_seed(seed = parameters['seed'])
@@ -27,6 +46,8 @@ class Training():
         self.scheduler = torch.optim.lr_scheduler.ExponentialLR(self.optim, gamma = self.parameters['gamma'])
 
         self.scaler = torch.amp.GradScaler('cuda') if self.device.type == 'cuda' else None
+
+        self.early_stopping = EarlyStopping(patience=self.parameters.get('patience', 20))
 
         self.history = {'training' : [], 'validation' : [], 'lr' : []}
 
@@ -111,6 +132,8 @@ class Training():
                 
                 training_loss += loss_obj.mean()
                 self.scaler.scale(loss_obj).backward()
+                self.scaler.unscale_(self.optim)
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
                 self.scaler.step(self.optim)
                 self.scaler.update()
             else:
@@ -129,6 +152,7 @@ class Training():
                 loss_obj = self.loss(out.flatten(), data.y.to(self.device))
                 training_loss += loss_obj.mean()
                 loss_obj.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
                 self.optim.step()
     
         training_loss = training_loss / len(self.training_loader)
@@ -170,7 +194,7 @@ class Training():
         valLoss_min = 100000000000000
         for epoch in iterator:
             self.train()
-            self.validation()
+            valLoss = self.validation()
 
             self.history['lr'].append(self.scheduler.get_last_lr()[0])
         
@@ -185,6 +209,11 @@ class Training():
                     torch.save(self.model.state_dict(), f"{self.root}/{self.parameters['target']}-{self.timestamp}")
                 valLoss_min = self.history['validation'][-1]
                 self.best_model = self.model
+            
+            self.early_stopping(valLoss)
+            if self.early_stopping.early_stop:
+                if self.parameters['verbose']: print("\tEarly stopping triggered!")
+                break
 
         self.true, self.pred = self.eval()
         self.metrics(self.true, self.pred)

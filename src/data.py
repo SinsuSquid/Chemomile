@@ -3,6 +3,9 @@ import sys
 import random
 import pickle
 import pandas as pd
+import numpy as np
+import h5py
+from joblib import Parallel, delayed
 from rich.progress import track
 
 from rdkit import RDLogger
@@ -36,10 +39,9 @@ class Dataset():
         else:
             print("Something is wrong with the target.")
             print("Supported targets are : ")
-            print(f"\tRegression : {REGRESSION}")
-            print(f"\tClassification : {CLASSIFICATION}")
             print(f"\tDIPPR : {DIPPR}")
-            print(f"\tTOXICITY : {TOXICITY}")
+            print(f"\tMoleculeNet : {MOLECULENET}")
+            print(f"\tCaseStudy : {CASESTUDY}")
             sys.exit(-1)
 
         # Normalization
@@ -48,7 +50,9 @@ class Dataset():
         self.mean = self.df['Value'].mean()
         self.std = self.df['Value'].std()
 
-        if os.path.exists(f"{root}/data/DATADUMP/{self.target}.pickle"):
+        if os.path.exists(f"{root}/data/DATADUMP/{self.target}.h5"):
+            self.loadDump()
+        elif os.path.exists(f"{root}/data/DATADUMP/{self.target}.pickle"):
             self.loadPickle()
         else:
             self.initialize()
@@ -88,17 +92,33 @@ class Dataset():
 
         return
 
-    def initialize(self):
-        if self.verbose : print(f"\tNo DataDump found for \'{self.target}\'. Creating a new one.")
+    def loadDump(self):
+        if self.verbose : print(f"\tDataDump (HDF5) found for \'{self.target}\'. Loading dumped data.")
 
         self.total_set = []
+        with h5py.File(f'{self.root}/data/DATADUMP/{self.target}.h5', 'r') as f:
+            group = f['molecules']
+            keys = sorted(group.keys(), key=int)
+            for key in keys:
+                serialized = group[key][()]
+                self.total_set.append(pickle.loads(serialized.tobytes()))
 
-        for idx, row in track(self.df.iterrows(), total = self.df.shape[0], description = "Building DataDump ..."):
-            result = src.smiles2data.smiles2data(row.SMILES, row.Z_Value)
-            if (result != -1): self.total_set.append(result)
+        return
 
-        with open(f'{self.root}/data/DATADUMP/{self.target}.pickle', 'wb') as fp:
-            pickle.dump(self.total_set, fp)
+    def initialize(self):
+        if self.verbose : print(f"\tNo DataDump found for \'{self.target}\'. Creating a new one (Parallel).")
+
+        results = Parallel(n_jobs=-1)(
+            delayed(src.smiles2data.smiles2data)(row.SMILES, row.Z_Value) 
+            for _, row in track(self.df.iterrows(), total=self.df.shape[0], description="Parallel Building DataDump ...")
+        )
+        self.total_set = [r for r in results if r != -1]
+
+        with h5py.File(f'{self.root}/data/DATADUMP/{self.target}.h5', 'w') as f:
+            group = f.create_group('molecules')
+            for i, data in enumerate(self.total_set):
+                serialized = pickle.dumps(data)
+                group.create_dataset(str(i), data=np.frombuffer(serialized, dtype='uint8'), compression='gzip')
 
         return
 

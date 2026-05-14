@@ -180,6 +180,42 @@ class Explainer():
 
         return self.results
 
+    def integratedGradients(self, steps=50):
+        self.model.eval()
+        self.model.to('cpu')
+        
+        baseline = torch.zeros_like(self.data.mol_x)
+        input_x = self.data.mol_x.clone().detach()
+        
+        total_gradients = torch.zeros_like(input_x)
+        
+        for alpha in torch.linspace(0, 1, steps):
+            interpolated = baseline + alpha * (input_x - baseline)
+            interpolated.requires_grad_(True)
+            
+            # Forward pass
+            out = self.model(x = self.data.x, 
+                             edge_index = self.data.edge_index, 
+                             edge_attr = self.data.edge_attr,
+                             sub_batch = self.data.sub_batch, 
+                             jt_index = self.data.jt_index,
+                             jt_attr = self.data.jt_attr,
+                             numFrag = [self.data.numFrag],
+                             mol_x = interpolated,
+                             mol_edge_index = [self.data.mol_edge_index],
+                             mol_edge_attr = [self.data.mol_edge_attr],
+                             numAtom = [self.data.numAtom])
+            
+            out.backward()
+            total_gradients += interpolated.grad
+            self.model.zero_grad()
+            
+        avg_gradients = total_gradients / steps
+        integrated_grad = (input_x - baseline) * avg_gradients
+        self.results = integrated_grad.sum(dim=1).detach().numpy()
+        
+        return self.results
+
     def plot(self, ax):
         anum = self.data.mol_x[:,0]
         coord = self.data.position
