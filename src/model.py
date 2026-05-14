@@ -79,58 +79,46 @@ class Chemomile(torch.nn.Module):
                 layer.reset_parameters()
 
     def jtBatchMaker(self, numFrag, jt_index, jt_attr):
-        batch_idx = 0
-        frag_batch = []
+        numFrag = torch.as_tensor(numFrag, device=self.device)
+        jt_batch = torch.repeat_interleave(torch.arange(len(numFrag), device=self.device), numFrag)
 
-        for n in numFrag:
-            frag_batch.extend([batch_idx for _ in range(n)])
-            batch_idx += 1
+        # Flatten jt_index and jt_attr lists
+        indices = [torch.as_tensor(idx, dtype=torch.long, device=self.device) for idx in jt_index]
+        attrs = [torch.as_tensor(attr, dtype=torch.float, device=self.device) for attr in jt_attr]
 
-        frag_batch = torch.tensor(frag_batch).to(torch.long).to(self.device)
+        # Calculate offsets for node indices
+        offsets = torch.cat([torch.tensor([0], device=self.device), numFrag.cumsum(0)[:-1]])
+        
+        # Apply offsets to each graph's indices and concatenate
+        edge_index = torch.cat([idx.t() + offset for idx, offset in zip(indices, offsets)], dim=1)
+        edge_attr = torch.cat(attrs, dim=0)
 
-        edge_index = []; edge_attr = []; edge_idx = 0
-
-        for frag_idx, frag_jt in enumerate(jt_index):
-            for pair_idx, pair in enumerate(frag_jt):
-                edge_index.append([pair[0] + edge_idx, pair[1] + edge_idx])
-                edge_attr.append(jt_attr[frag_idx][pair_idx])
-            edge_idx += numFrag[frag_idx]
-
-        edge_index = torch.tensor(edge_index).t().to(torch.long).view(2,-1)
-        edge_attr = torch.tensor(edge_attr).to(torch.float).view(edge_index.shape[1], -1)
-
-        if edge_index.numel() > 0: # Sort indices
-            perm = (edge_index[0] * frag_batch.shape[0] + edge_index[1]).argsort()
+        if edge_index.numel() > 0:
+            perm = (edge_index[0] * jt_batch.shape[0] + edge_index[1]).argsort()
             edge_index, edge_attr = edge_index[:, perm], edge_attr[perm]
 
-        return edge_index, edge_attr, frag_batch
+        return edge_index, edge_attr, jt_batch
 
     def molBatchMaker(self, numAtom, mol_edge_index, mol_edge_attr):
-        batch_idx = 0
-        atom_batch = []
+        numAtom = torch.as_tensor(numAtom, device=self.device)
+        mol_batch = torch.repeat_interleave(torch.arange(len(numAtom), device=self.device), numAtom)
 
-        for n in numAtom:
-            atom_batch.extend([batch_idx for _ in range(n)])
-            batch_idx += 1
+        # Flatten mol_edge_index and mol_edge_attr lists
+        indices = [torch.as_tensor(idx, dtype=torch.long, device=self.device) for idx in mol_edge_index]
+        attrs = [torch.as_tensor(attr, dtype=torch.float, device=self.device) for attr in mol_edge_attr]
 
-        atom_batch = torch.tensor(atom_batch).to(torch.long).to(self.device)
+        # Calculate offsets for node indices
+        offsets = torch.cat([torch.tensor([0], device=self.device), numAtom.cumsum(0)[:-1]])
+        
+        # Apply offsets to each graph's indices and concatenate
+        edge_index = torch.cat([idx.t() + offset for idx, offset in zip(indices, offsets)], dim=1)
+        edge_attr = torch.cat(attrs, dim=0)
 
-        edge_index = []; edge_attr = []; edge_idx = 0
-
-        for mol_idx, mol_edges in enumerate(mol_edge_index):
-            for pair_idx, pair in enumerate(mol_edges):
-                edge_index.append([pair[0] + edge_idx, pair[1] + edge_idx])
-                edge_attr.append(mol_edge_attr[mol_idx][pair_idx])
-            edge_idx += numAtom[mol_idx]
-
-        edge_index = torch.tensor(edge_index).t().to(torch.long).view(2,-1)
-        edge_attr = torch.tensor(edge_attr).to(torch.float).view(edge_index.shape[1], -1)
-
-        if edge_index.numel() > 0: # Sort indices
-            perm = (edge_index[0] * atom_batch.shape[0] + edge_index[1]).argsort()
+        if edge_index.numel() > 0:
+            perm = (edge_index[0] * mol_batch.shape[0] + edge_index[1]).argsort()
             edge_index, edge_attr = edge_index[:, perm], edge_attr[perm]
 
-        return edge_index, edge_attr, atom_batch
+        return edge_index, edge_attr, mol_batch
 
     def forward(self, x, edge_index, edge_attr, sub_batch,
                 jt_index, jt_attr, numFrag,

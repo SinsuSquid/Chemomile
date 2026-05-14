@@ -26,6 +26,8 @@ class Training():
                                       weight_decay = self.parameters['weight_decay'])
         self.scheduler = torch.optim.lr_scheduler.ExponentialLR(self.optim, gamma = self.parameters['gamma'])
 
+        self.scaler = torch.amp.GradScaler('cuda') if self.device.type == 'cuda' else None
+
         self.history = {'training' : [], 'validation' : [], 'lr' : []}
 
         return
@@ -89,23 +91,45 @@ class Training():
         
         training_loss = 0
         for data in self.training_loader:
-            out = self.model(x = data.x, 
-                             edge_index = data.edge_index, 
-                             edge_attr = data.edge_attr,
-                             sub_batch = data.sub_batch, 
-                             jt_index = data.jt_index,
-                             jt_attr = data.jt_attr,
-                             numFrag = data.numFrag,
-                             mol_x = data.mol_x,
-                             mol_edge_index = data.mol_edge_index,
-                             mol_edge_attr = data.mol_edge_attr,
-                             numAtom = data.numAtom)
-    
-            loss_obj = self.loss(out.flatten(), data.y.to(self.device))
-            training_loss += loss_obj.mean()
             self.optim.zero_grad()
-            loss_obj.backward()
-            self.optim.step()
+            
+            if self.scaler is not None:
+                with torch.autocast(device_type='cuda', dtype=torch.float16):
+                    out = self.model(x = data.x, 
+                                     edge_index = data.edge_index, 
+                                     edge_attr = data.edge_attr,
+                                     sub_batch = data.sub_batch, 
+                                     jt_index = data.jt_index,
+                                     jt_attr = data.jt_attr,
+                                     numFrag = data.numFrag,
+                                     mol_x = data.mol_x,
+                                     mol_edge_index = data.mol_edge_index,
+                                     mol_edge_attr = data.mol_edge_attr,
+                                     numAtom = data.numAtom)
+            
+                    loss_obj = self.loss(out.flatten(), data.y.to(self.device))
+                
+                training_loss += loss_obj.mean()
+                self.scaler.scale(loss_obj).backward()
+                self.scaler.step(self.optim)
+                self.scaler.update()
+            else:
+                out = self.model(x = data.x, 
+                                 edge_index = data.edge_index, 
+                                 edge_attr = data.edge_attr,
+                                 sub_batch = data.sub_batch, 
+                                 jt_index = data.jt_index,
+                                 jt_attr = data.jt_attr,
+                                 numFrag = data.numFrag,
+                                 mol_x = data.mol_x,
+                                 mol_edge_index = data.mol_edge_index,
+                                 mol_edge_attr = data.mol_edge_attr,
+                                 numAtom = data.numAtom)
+        
+                loss_obj = self.loss(out.flatten(), data.y.to(self.device))
+                training_loss += loss_obj.mean()
+                loss_obj.backward()
+                self.optim.step()
     
         training_loss = training_loss / len(self.training_loader)
         self.history['training'].append(training_loss.item())
