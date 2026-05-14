@@ -10,12 +10,31 @@ Chemomile has been recently upgraded with several state-of-the-art features:
 - **Advanced HPO:** Added **Optuna** for Bayesian Hyperparameter Optimization with intelligent pruning.
 - **Improved Explainability:** Implemented **Integrated Gradients** for smoother and mathematically grounded atom-level attribution.
 - **Optimized Data Pipeline:** Parallel SMILES-to-Graph featurization with **HDF5-compressed caching**.
+- **Molecular Mission Control:** A high-performance, dark-mode GUI for real-time molecular analysis and explainability.
 - **Training Stability:** Added **Early Stopping** and **Gradient Clipping** to ensure robust convergence.
+
+## Molecular Mission Control (GUI)
+
+![Mission_Control_Screenshot](Screenshot/Screenshot1.png)
+
+Chemomile now features a professional-grade dashboard for interactive molecular analysis:
+- **Interactive HUD:** Click on any predicted property to instantly pivot the explainability focus.
+- **3D Lab Zone:** Synchronized 3D visualization of molecular structures.
+- **X-Ray Analysis:** Real-time heatmaps showing atomic contributions to specific combustion properties.
+- **System Integrity:** Automatic weight-loading verification and notification system.
+
+To launch the dashboard:
+```bash
+export PYTHONPATH=$PYTHONPATH:.
+python gui.py
+```
 
 ## Prerequisites
 - torch >= 2.10.0
 - torch\_geometric >= 2.7.0
 - rdkit >= 2026.03.1
+- customtkinter >= 5.2.0
+- matplotlib >= 3.8.0
 - optuna >= 4.0.0
 - h5py >= 3.11.0
 - joblib >= 1.4.0

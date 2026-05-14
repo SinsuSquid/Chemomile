@@ -18,11 +18,11 @@ if __name__ == '__main__':
         out_size = 1,
         seed = 42,
         batch_size = 128,
-        max_epoch = 200,
+        max_epoch = 10,
         verbose = True,
         save = False,
         
-        target = 'FLVU',
+        target = 'ESOL',
     )
 
     parameters = parameters | optimized[parameters['target']]
