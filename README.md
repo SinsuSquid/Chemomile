@@ -83,10 +83,10 @@ python ensemble_run.py
 
 - **Explainability (XAI)**
 	- Uses **Integrated Gradients** and **Atom Masking** to visualize atomic contributions in 3D.
-	- See `src/explainer.py` and the example notebooks.
+	- See `src/explainer.py` and the [example tutorial](./examples/Chemomile_Tutorial.ipynb).
 
 ## Comment
-If you're not sure how to use this model, please consult [some example notebooks](./Notebooks)
+If you're not sure how to use this model, please consult the [example tutorial](./examples/Chemomile_Tutorial.ipynb)
 
 ## Citation
 
