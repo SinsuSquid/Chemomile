@@ -1,0 +1,24 @@
+name: chemomile
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pytorch=2.1.0
+  - pytorch-cuda=12.1
+  - rdkit
+  - matplotlib
+  - pandas
+  - h5py
+  - joblib
+  - tqdm
+  - scikit-learn
+  - networkx
+  - optuna
+  - rich
+  - pip:
+      - torch-geometric
+      - ipykernel
+      - ipywidgets
+      - customtkinter
+      - pyswarms

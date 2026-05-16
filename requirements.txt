@@ -1,0 +1,16 @@
+torch==2.1.0
+torch-geometric
+rdkit-pypi
+matplotlib
+pandas
+h5py
+joblib
+tqdm
+scikit-learn
+networkx
+optuna
+rich
+ipykernel
+ipywidgets
+customtkinter
+pyswarms

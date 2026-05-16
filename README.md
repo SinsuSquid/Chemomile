@@ -1,6 +1,6 @@
 # Chemomile
 
-![Chemomile_Logo](https://github.com/SinsuSquid/Chemomile/blob/main/icons/Chemomile_Logo.png)
+![Chemomile_Logo](https://github.com/SinsuSquid/Chemomile/blob/main/assets/icons/Chemomile_Logo.png)
 
 "Chemomile: Explainable Multi-Level GNN Model for Combustion Property Prediction", **Beomgyu Kang** and Bong June Sung*, *J. Phys. Chem. A* 2025, 129, 1880-1889, https://doi.org/10.1021/acs.jpca.5c00380
 
@@ -15,7 +15,7 @@ Chemomile has been recently upgraded with several state-of-the-art features:
 
 ## Molecular Mission Control (GUI)
 
-![Mission_Control_Screenshot](Screenshot/Screenshot1.png)
+![Mission_Control_Screenshot](assets/Screenshot/Screenshot1.png)
 
 Chemomile now features a professional-grade dashboard for interactive molecular analysis:
 - **Interactive HUD:** Click on any predicted property to instantly pivot the explainability focus.
@@ -25,24 +25,21 @@ Chemomile now features a professional-grade dashboard for interactive molecular 
 
 To launch the dashboard:
 ```bash
-export PYTHONPATH=$PYTHONPATH:.
 python gui.py
 ```
 
-## Prerequisites
-- torch >= 2.10.0
-- torch\_geometric >= 2.7.0
-- rdkit >= 2026.03.1
-- customtkinter >= 5.2.0
-- matplotlib >= 3.8.0
-- optuna >= 4.0.0
-- h5py >= 3.11.0
-- joblib >= 1.4.0
-- networkx >= 3.6
-- rich >= 14.0.0
-- scikit-learn >= 1.5.0
-- tqdm >= 4.66.4
-- pyswarms >= 1.3.0
+## Installation
+
+### Using Conda (Recommended)
+```bash
+conda env create -f environment.yml
+conda activate chemomile
+```
+
+### Using Pip
+```bash
+pip install -r requirements.txt
+```
 
 ## Notes
 Due to copyright issue, datasets are not included in this git.
@@ -66,12 +63,12 @@ python single_run.py
 
 - **Bayesian Hyperparameter Optimization (Optuna)**
 ```python
-python optunaOpt.py
+python scripts/optunaOpt.py
 ```
 
 - **Particle Swarm Optimization (PSO)**
 ```python
-python particleSwarmOpt.py
+python scripts/particleSwarmOpt.py
 ```
 
 - **Ensemble Training Cycle**
